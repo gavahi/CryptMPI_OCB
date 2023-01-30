@@ -1,9 +1,8 @@
 
 # CryptMPI: A Fast Encrypted MPI Library using GCM and OCB
 CryptMPI provides secure inter-node communication in the HPC cluster and cloud environment.
-We implemented a prototypes in MPICH-3.3 (for Ethernet) using AES-
-GCM from the [BoringSSL library](https://boringssl.googlesource.com/boringssl/) and
-[OCB](https://web.cs.ucdavis.edu/~rogaway/ocb/ocb-faq.htm)
+I implemented a prototypes in MPICH-3.3 (for Ethernet) using AES-GCM from the [BoringSSL library](https://boringssl.googlesource.com/boringssl/) and also 
+[OCB](https://web.cs.ucdavis.edu/~rogaway/ocb/ocb-faq.htm).
 
 OCB could be 2-6 times faster than GCM, but a precise answer depends on a many factors. Please refer to the [performance page](https://web.cs.ucdavis.edu/~rogaway/ocb/performance/) for moew details across various platforms.
 
@@ -109,21 +108,27 @@ To run MPI applications using CryptMPI please follow following steps:
 
 #### CryptMPI-MPICH (Ethernet)
 ```bash
-export LD_LIBRARY_PATH=/MPICH_INSTALL_DIR/install/lib:/YOUR_PATH_TO_MPICH/mpich-3.4.2/boringssl-master/build/crypto
+export LD_LIBRARY_PATH=/MPICH_INSTALL_DIR/install/lib:/BORINGSSL_INSTALL_DIR/build/crypto:/BORINGSSL_INSTALL_DIR/
 ```
 
 
 ## Performance measurement
-The performance was measured on 100Gb/s Infiniband and 10Gb/s Ethernet network. Benchmark program used:
+The performance was measured on 100Gb/s Infiniband and 10Gb/s Ethernet network. 
+I tested it on bare metal (Physical server without virtualization) and also on Container platform.
+I developed a container-based virtual cluster using Docker or Singularity as container engines. 
+Additionally, I used container orchestrations like Docker swarm and Kubernetes to provide mechanisms to enhance inter-node data communication security.
+I used several Container Network Interfaces (CNI) for Kubernetes to handle network security with different encryption methods: Calico, Antrea, Cillium, etc.
+Finally, I measured the encryption performance provided by container orchestrations then the CryptMPI approach.
+The empirical evaluation on multiple production systems shows that my proposed encrypting approach in CryptMPI achieves 2 to 10 times improvement (depending on message size, number of nodes and number of processes per node) over Docker swarm and Kubernetes built-in security mechanisms.
+
+In my evaluation process, I used many MPI application and benchmarks such as:
 - OSU micro-benchmark 5.8
 - NAS parallel benchmarks 3.3.1 
 - N-Body
 
 ## Flags List
 
-The flags are discussed in this section, work in both MIPICH and MVAPICH.
-
-
+The flags are discussed in this section, will work for MVAPICH also when it is avaiable.
 
 
 #### Point-to-Point
