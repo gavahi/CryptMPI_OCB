@@ -4,7 +4,7 @@ CryptMPI provides secure inter-node communication in the HPC cluster and cloud e
 I implemented a prototypes in MPICH-3.3 (for Ethernet) using AES-GCM from the [BoringSSL library](https://boringssl.googlesource.com/boringssl/) and also 
 [OCB](https://web.cs.ucdavis.edu/~rogaway/ocb/ocb-faq.htm).
 
-OCB could be 2-6 times faster than GCM, but a precise answer depends on a many factors. Please refer to the [performance page](https://web.cs.ucdavis.edu/~rogaway/ocb/performance/) for moew details across various platforms.
+OCB could be 2-6 times faster than GCM, but a precise answer depends on a many factors. Please refer to the [performance page](https://web.cs.ucdavis.edu/~rogaway/ocb/performance/) for more details across various platforms.
 
 For next step, I will add MVAPICH2-2.3.3(for Infiniband) as well.
 
@@ -114,17 +114,24 @@ export LD_LIBRARY_PATH=/MPICH_INSTALL_DIR/install/lib:/BORINGSSL_INSTALL_DIR/bui
 
 ## Performance measurement
 The performance was measured on 100Gb/s Infiniband and 10Gb/s Ethernet network. 
+
 I tested it on bare metal (Physical server without virtualization) and also on Container platform.
 I developed a container-based virtual cluster using Docker or Singularity as container engines. 
+
 Additionally, I used container orchestrations like Docker swarm and Kubernetes to provide mechanisms to enhance inter-node data communication security.
 I used several Container Network Interfaces (CNI) for Kubernetes to handle network security with different encryption methods: Calico, Antrea, Cillium, etc.
+
 Finally, I measured the encryption performance provided by container orchestrations then the CryptMPI approach.
+
 The empirical evaluation on multiple production systems shows that my proposed encrypting approach in CryptMPI achieves 2 to 10 times improvement (depending on message size, number of nodes and number of processes per node) over Docker swarm and Kubernetes built-in security mechanisms.
 
 In my evaluation process, I used many MPI application and benchmarks such as:
 - OSU micro-benchmark 5.8
 - NAS parallel benchmarks 3.3.1 
 - N-Body
+
+Some useful scripts regarding container cluster development is located on Container.gz.tar to reproduce results. 
+It is recommanded to use thses scripts, you need a basic knowledge about Docker and Kubernetes.
 
 ## Flags List
 
