@@ -4,6 +4,8 @@
         "type_traits": "c",
         "algorithm": "c",
         "array": "c",
-        "string": "c"
+        "string": "c",
+        "time.h": "c",
+        "cmath": "c"
     }
 }

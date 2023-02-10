@@ -304,6 +304,8 @@ int MPI_SEC_GCM_Wait_Irecv(MPI_Request *req, MPI_Status *status)
     unsigned long max_out_len = totaldata + 16;
     int pos = MSG_HEADER_SIZE; 
     int enc_data = totaldata;
+
+    if (TIMING_FLAG) start_time_dec();        
     
     if (!EVP_AEAD_CTX_open(global_ctx, buf, 
                             &count, enc_data,
@@ -313,6 +315,8 @@ int MPI_SEC_GCM_Wait_Irecv(MPI_Request *req, MPI_Status *status)
     {
         printf("Err in Decryption GCM: MPI_Wait\n");fflush(stdout);
     }
+
+    if (TIMING_FLAG) stop_time_dec();        
 
     return mpi_errno;
 }
@@ -353,8 +357,9 @@ int MPI_SEC_OCB_Wait_Irecv(MPI_Request *req, MPI_Status *status)
     mpi_errno = MPI_Wait_original(&nonblock_req_handler[index].request[1], &sta);
     
     int pos = MSG_HEADER_SIZE; 
-
+    if (TIMING_FLAG) start_time_dec();        
     int res = ocb_decrypt(ocb_enc_ctx, ocb_enc_ctx2, ocb_enc_ctx3, ocb_enc_ctx4, &Ideciphertext[index][pos], totaldata, buf, 1);  
+    if (TIMING_FLAG) stop_time_dec();        
             
     if (res == -1)  printf("Authentication error on Wait\n");   
 
@@ -373,6 +378,8 @@ int MPI_Wait(MPI_Request * request, MPI_Status * status)
 		printf("[Wait rank = %d host = %s SA=%d] Func: MPI_Wait\n", init_rank,hostname,security_approach);fflush(stdout);
 	}
 #endif
+
+    if (TIMING_FLAG) start_time_wait();
     int mpi_errno = MPI_SUCCESS;
     int req_index = *request;
 
@@ -388,6 +395,7 @@ int MPI_Wait(MPI_Request * request, MPI_Status * status)
             mpi_errno = MPI_SEC_OCB_Wait_Irecv(request, status);
     } else      
         mpi_errno = MPI_Wait_original(request, status);
-
+    
+    if (TIMING_FLAG) stop_time_wait();
     return mpi_errno;
 }

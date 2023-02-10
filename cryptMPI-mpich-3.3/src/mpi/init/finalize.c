@@ -151,6 +151,34 @@ thread that initialized MPI with either 'MPI_Init' or 'MPI_Init_thread'.
 @*/
 int MPI_Finalize(void)
 {
+    if (TIMING_FLAG)  {
+        stop_time_all_prog();
+        double total_enc = (double) omp_t1 + (double) omp_t2;  
+        double avg_enc,avg_prog_exec,avg_all_comm,avg_wait_time,avg_omp;
+        
+        // fprintf(stderr,"[%d] Prog_exec= %lf Comm= %lf  Wait= %lf Header= %lf Enc= %lf\n", init_rank, prog_exec_time,total_comm_plus_enc_time, total_wait_time,omp_t3,total_enc);        
+        // MPI_Reduce(&errors, &errs, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+        MPI_Reduce(&prog_exec_time, &avg_prog_exec, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD );
+        MPI_Reduce(&total_comm_plus_enc_time, &avg_all_comm, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD );
+        MPI_Reduce(&total_wait_time, &avg_wait_time, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD );
+        MPI_Reduce(&omp_t3, &avg_omp, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD );
+        MPI_Reduce(&total_enc, &avg_enc, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD );
+        
+        if (init_rank==0) {
+            int total_process_number=1;
+            MPI_Comm_size(MPI_COMM_WORLD, &total_process_number);
+
+            prog_exec_time = (double) avg_prog_exec/total_process_number;
+            total_comm_plus_enc_time = (double) avg_all_comm/total_process_number;
+            total_wait_time = (double) avg_wait_time/total_process_number;
+            omp_t3 = (double) avg_omp/total_process_number;
+            total_enc = (double) avg_enc/total_process_number;    
+            double round =  total_comm_plus_enc_time + total_wait_time + omp_t3 + total_enc;
+
+            fprintf(stderr,"\nSA= %d  Prog_exec= %.4f  ALL= %.4f  Comm= %.4f %.0f%%  Wait= %.4f %.0f%%  Header= %.4f %.0f%%  Enc= %.4f %.0f%%\n",security_approach, prog_exec_time,round,total_comm_plus_enc_time,100*total_comm_plus_enc_time/round, total_wait_time,100*total_wait_time/round,omp_t3,100*omp_t3/round,total_enc,100*total_enc/round);
+        }
+    }
+    
     int mpi_errno = MPI_SUCCESS;
 #if defined(HAVE_USLEEP) && defined(USE_COVERAGE)
     int rank = 0;
@@ -275,6 +303,7 @@ int MPI_Finalize(void)
     }
 
     /**************************************************/
+     
 
     mpi_errno = MPID_Finalize();
     if (mpi_errno) {
@@ -359,6 +388,16 @@ int MPI_Finalize(void)
     /* ... end of body of routine ... */
   fn_exit:
     MPIR_FUNC_TERSE_FINALIZE_EXIT(MPID_STATE_MPI_FINALIZE);
+
+#if 0  
+  if (TIMING_FLAG)  {
+        stop_time_all_prog();
+        // double total_enc = (double) omp_t1 + (double) omp_t2;  
+        fprintf(stderr,"[%d] Prog_exec= %lf Comm= %lf  Wait= %lf Header= %lf Enc= %lf\n", init_rank, prog_exec_time,total_comm_plus_enc_time, total_wait_time,omp_t3, (double) omp_t1 + (double) omp_t2);
+  }
+#endif
+  
+
     return mpi_errno;
 
   fn_fail:

@@ -11,6 +11,7 @@
 unsigned char large_send_buffer[COMMON_LARGE_SEND_BUFFER_SIZE];
 unsigned char large_recv_buffer[COMMON_LARGE_RECV_BUFFER_SIZE];
 
+// double omp_t2 = 0;
 struct CryptHandleProbe Crypthandle_probe[2048]; 
 /* end of add */
 
@@ -198,12 +199,67 @@ void Integer_to_Array(unsigned char array[] , int totaldata){
     array[3] = temp_data & 0xFF;
 }
 
+void start_time_enc(){
+    gettimeofday(&omp_tv1, NULL);
+}
+
+void stop_time_enc(){
+    gettimeofday(&omp_tv2, NULL);
+    omp_t1 += (double) (omp_tv2.tv_usec - omp_tv1.tv_usec)/1000000  + (double) (omp_tv2.tv_sec - omp_tv1.tv_sec); 
+}
+
+void start_time_dec(){
+    gettimeofday(&omp_tv3, NULL);
+}
+
+void stop_time_dec(){
+    gettimeofday(&omp_tv4, NULL);
+    omp_t2 += (double) (omp_tv4.tv_usec - omp_tv3.tv_usec)/1000000  + (double) (omp_tv4.tv_sec - omp_tv3.tv_sec);   
+    if (PRINT_TIMING && (init_rank==0)) fprintf(stderr,"%lf %lf %lf %lf\n", total_comm_plus_enc_time, omp_t1,omp_t2,omp_t3); 
+}
+
+void start_time_header_comm(){
+    gettimeofday(&omp_tv5, NULL);
+}
+
+void stop_time_header_comm(){
+    gettimeofday(&omp_tv6, NULL);
+    omp_t3 += (double) (omp_tv6.tv_usec - omp_tv5.tv_usec)/1000000  + (double) (omp_tv6.tv_sec - omp_tv5.tv_sec);
+}
+
+void start_time_all_comm(){
+    gettimeofday(&comm_start_time, NULL);
+}
+
+void stop_time_all_comm(){
+    gettimeofday(&comm_end_time, NULL);
+    total_comm_plus_enc_time += (double) (comm_end_time.tv_usec - comm_start_time.tv_usec)/1000000  + (double) (comm_end_time.tv_sec - comm_start_time.tv_sec);
+}
+
+void start_time_wait(){
+    gettimeofday(&wait_start_time, NULL);
+}
+
+void stop_time_wait(){
+    gettimeofday(&wait_end_time, NULL);
+    total_wait_time += (double) (wait_end_time.tv_usec - wait_start_time.tv_usec)/1000000  + (double) (wait_end_time.tv_sec - wait_start_time.tv_sec);
+}
+
+void start_time_all_prog(){
+    gettimeofday(&prog_start_time, NULL);
+}
+
+void stop_time_all_prog(){
+    gettimeofday(&prog_end_time, NULL);
+    prog_exec_time = (double) (prog_end_time.tv_usec - prog_start_time.tv_usec)/1000000  + (double) (prog_end_time.tv_sec - prog_start_time.tv_sec);
+}
+
 
 
 int MPIR_Naive_Sec_Send(const void *buf, int count, MPI_Datatype datatype, int dest, int tag,
 	     MPI_Comm comm)
 {
-#if pt2pt_PRINT_FUN
+#if P2P_PRINT_FUN
 	char hostname[100];
     gethostname(hostname, MAX_HOSTNAME_LEN);
    if (PRINT_FUN_NAME || DEBUG_INIT_FILE){	
@@ -223,10 +279,16 @@ int MPIR_Naive_Sec_Send(const void *buf, int count, MPI_Datatype datatype, int d
     MPI_Type_size(datatype, &sendtype_sz);  
     totaldata = count * sendtype_sz;
 
+    if (TIMING_FLAG) start_time_header_comm();  
     Integer_to_Array(&large_send_buffer, totaldata);
 
     mpi_errno = MPI_Isend_original(large_send_buffer, MSG_HEADER_SIZE , MPI_UNSIGNED_CHAR, dest, tag, comm, &request1);
-   
+
+    if (TIMING_FLAG) stop_time_header_comm();
+
+    if (TIMING_FLAG) start_time_enc();
+
+
     RAND_bytes(&large_send_buffer[MSG_HEADER_SIZE], 12);
 
     unsigned long ciphertext_len=0 , max_out_len = totaldata + 16;
@@ -242,6 +304,8 @@ int MPIR_Naive_Sec_Send(const void *buf, int count, MPI_Datatype datatype, int d
         fflush(stdout);
     }
 
+    if (TIMING_FLAG) stop_time_enc();
+
     mpi_errno = MPI_Isend_original(large_send_buffer+MSG_HEADER_SIZE, totaldata +  (12 + 16) , MPI_UNSIGNED_CHAR, dest, tag, comm, &request2);
 
     mpi_errno = MPI_Wait_original(&request1, &status);
@@ -254,7 +318,7 @@ int MPIR_Naive_Sec_Send(const void *buf, int count, MPI_Datatype datatype, int d
 int MPIR_OCB_Naive_Sec_Send(const void *buf, int count, MPI_Datatype datatype, int dest, int tag,
 	     MPI_Comm comm)
 {
-#if pt2pt_PRINT_FUN
+#if P2P_PRINT_FUN
 	char hostname[100];
     gethostname(hostname, MAX_HOSTNAME_LEN);
    if (PRINT_FUN_NAME || DEBUG_INIT_FILE){	
@@ -274,12 +338,16 @@ int MPIR_OCB_Naive_Sec_Send(const void *buf, int count, MPI_Datatype datatype, i
     MPI_Type_size(datatype, &sendtype_sz);  
     totaldata = count * sendtype_sz;
 
+    if (TIMING_FLAG) start_time_header_comm();  
     Integer_to_Array(&large_send_buffer, totaldata);
 
     mpi_errno = MPI_Isend_original(large_send_buffer, MSG_HEADER_SIZE , MPI_UNSIGNED_CHAR, dest, tag, comm, &request1);
+    if (TIMING_FLAG) stop_time_header_comm();
 
     int pos = MSG_HEADER_SIZE; 
+    if (TIMING_FLAG) start_time_enc();
     ocb_encrypt(ocb_enc_ctx, ocb_enc_ctx2, ocb_enc_ctx3, ocb_enc_ctx4, buf, totaldata, &large_send_buffer[pos], 1);
+    if (TIMING_FLAG) stop_time_enc();
 
     mpi_errno = MPI_Isend_original(large_send_buffer+MSG_HEADER_SIZE, totaldata + OCB_TAG_NONCE , MPI_UNSIGNED_CHAR, dest, tag, comm, &request2);
 
@@ -298,7 +366,8 @@ int MPI_Send(const void *buf, int count, MPI_Datatype datatype, int dest, int ta
 		gethostname(hostname, MAX_HOSTNAME_LEN);
 		printf("[Send rank = %d host = %s count = %d SA=%d] Func: MPI_Send\n", init_rank,hostname,count,security_approach);fflush(stdout);
 	}
-#endif     
+#endif
+    if (TIMING_FLAG) start_time_all_comm();   
     int mpi_errno = MPI_SUCCESS;
 
     if (security_approach == 401 && init_phase==0)  {            
@@ -306,6 +375,8 @@ int MPI_Send(const void *buf, int count, MPI_Datatype datatype, int dest, int ta
     } else if (security_approach == 402 && init_phase==0)  {            
                 mpi_errno = MPIR_OCB_Naive_Sec_Send(buf, count, datatype, dest, tag, comm);
     } else      mpi_errno = MPIR_Original_Send(buf, count, datatype, dest, tag, comm);
+
+    if (TIMING_FLAG) stop_time_all_comm();       
 
     return mpi_errno;
    

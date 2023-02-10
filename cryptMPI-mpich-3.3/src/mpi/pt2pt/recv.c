@@ -203,6 +203,8 @@ int MPIR_Naive_Sec_Recv(void *buf, int count, MPI_Datatype datatype, int source,
     unsigned int temp_data;
     MPI_Type_size(datatype, &recvtype_sz);
 
+    if (TIMING_FLAG) start_time_header_comm();         
+
     mpi_errno = MPI_Recv_original(large_recv_buffer, MSG_HEADER_SIZE, MPI_CHAR, source, tag, comm, status);
 
     /*temp_data = ((unsigned char)large_recv_buffer[3] << 0) | ((unsigned char)large_recv_buffer[2] << 8) | ((unsigned char)large_recv_buffer[1] << 16) | ((unsigned char)large_recv_buffer[0] << 24);
@@ -210,7 +212,12 @@ int MPIR_Naive_Sec_Recv(void *buf, int count, MPI_Datatype datatype, int source,
 
     totaldata = Array_to_Integer (large_recv_buffer);
 
+    if (TIMING_FLAG) stop_time_header_comm();
+
+
     mpi_errno = MPI_Recv_original(large_recv_buffer, totaldata + (12 + 16), MPI_CHAR, source, tag, comm, status);
+    
+    if (TIMING_FLAG) start_time_dec();        
     
     unsigned long max_out_len = totaldata + 16;
     
@@ -223,6 +230,8 @@ int MPIR_Naive_Sec_Recv(void *buf, int count, MPI_Datatype datatype, int source,
         printf("Err in Decryption GCM: Recv\n");
         fflush(stdout);
     }
+    
+    if (TIMING_FLAG) stop_time_dec();
 
     return mpi_errno;
 }
@@ -245,13 +254,17 @@ int MPIR_OCB_Naive_Sec_Recv(void *buf, int count, MPI_Datatype datatype, int sou
     unsigned int temp_data;
     MPI_Type_size(datatype, &recvtype_sz);
 
+    if (TIMING_FLAG) start_time_header_comm();  
     mpi_errno = MPI_Recv_original(large_recv_buffer, MSG_HEADER_SIZE, MPI_CHAR, source, tag, comm, status);
 
     totaldata = Array_to_Integer (large_recv_buffer);
+    if (TIMING_FLAG) stop_time_header_comm();
 
     mpi_errno = MPI_Recv_original(large_recv_buffer, totaldata + OCB_TAG_NONCE, MPI_CHAR, source, tag, comm, status);
     
+    if (TIMING_FLAG) start_time_dec();        
     int res = ocb_decrypt(ocb_enc_ctx, ocb_enc_ctx2, ocb_enc_ctx3, ocb_enc_ctx4,  &large_recv_buffer, totaldata, buf , 1);  
+    if (TIMING_FLAG) stop_time_dec();
     
     if (res == -1)  printf("Authentication error on Recv OCB\n");
     
@@ -268,6 +281,7 @@ int MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, int tag, M
 		printf("[Recv rank = %d host = %s count = %d SA=%d] Func: MPI_Recv\n", init_rank,hostname,count,security_approach);fflush(stdout);
 	}
 #endif     
+    if (TIMING_FLAG) start_time_all_comm();   
     int mpi_errno = MPI_SUCCESS;
 
     if (security_approach == 401 && init_phase==0)  {            
@@ -276,6 +290,7 @@ int MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, int tag, M
                 mpi_errno = MPIR_OCB_Naive_Sec_Recv(buf, count, datatype, source, tag, comm,status);
     } else      mpi_errno = MPI_Recv_original(buf, count, datatype, source, tag, comm,status);
 
+    if (TIMING_FLAG) stop_time_all_comm();
     return mpi_errno;
    
 }

@@ -421,6 +421,7 @@ int MPI_SEC_GCM_Waitall(int req_count, MPI_Request arr_req[],
                     /* prepare for decryption */
                     int max_out_len = totaldata + 16;
                     int pos = MSG_HEADER_SIZE;
+                    if (TIMING_FLAG) start_time_dec();  
                     
                     if (!EVP_AEAD_CTX_open(global_ctx, buf, 
                                             &count, totaldata,
@@ -431,6 +432,7 @@ int MPI_SEC_GCM_Waitall(int req_count, MPI_Request arr_req[],
                         printf("Err in Decryption GCM: MPI_Waitall\n");
                         fflush(stdout);
                     }
+                    if (TIMING_FLAG) stop_time_dec();  
                 }
 
                 else
@@ -503,7 +505,9 @@ int MPI_SEC_OCB_Waitall(int req_count, MPI_Request arr_req[],
                     /* prepare for decryption */
                     int pos = MSG_HEADER_SIZE;
 
-                    int res = ocb_decrypt(ocb_enc_ctx, ocb_enc_ctx2, ocb_enc_ctx3, ocb_enc_ctx4,  &Ideciphertext[index][pos], totaldata, buf, 1);  
+                    if (TIMING_FLAG) start_time_dec();  
+                    int res = ocb_decrypt(ocb_enc_ctx, ocb_enc_ctx2, ocb_enc_ctx3, ocb_enc_ctx4,  &Ideciphertext[index][pos], totaldata, buf, 1);
+                    if (TIMING_FLAG) stop_time_dec();    
                         
                     if (res == -1)  printf("Authentication err on OCB Waitall\n");                     
                 }
@@ -542,6 +546,7 @@ int MPI_Waitall(int count, MPI_Request array_of_requests[],
 		printf("[Waitall rank = %d host = %s SA=%d] Func: MPI_Waitall\n", init_rank,hostname,security_approach);fflush(stdout);
 	}
 #endif
+    if (TIMING_FLAG) start_time_wait();
     int mpi_errno = MPI_SUCCESS;
     int req_index = array_of_requests[0];
 
@@ -551,6 +556,8 @@ int MPI_Waitall(int count, MPI_Request array_of_requests[],
     } else if (security_approach == 402 && init_phase==0)  {            
         mpi_errno = MPI_SEC_OCB_Waitall(count, array_of_requests, array_of_statuses);
     } else      mpi_errno = MPI_Waitall_original(count, array_of_requests, array_of_statuses);
+
+    if (TIMING_FLAG) stop_time_wait();
 
     return mpi_errno;
 }

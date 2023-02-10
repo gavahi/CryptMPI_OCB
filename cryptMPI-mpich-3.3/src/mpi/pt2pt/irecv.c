@@ -242,12 +242,14 @@ int MPI_Irecv(void *buf, int count, MPI_Datatype datatype, int source, int tag, 
 		printf("[Recv rank = %d host = %s count = %d SA=%d] Func: MPI_Irecv\n", init_rank,hostname,count,security_approach);fflush(stdout);
 	}
 #endif     
+    if (TIMING_FLAG) start_time_all_comm();   
     int mpi_errno = MPI_SUCCESS;
 
     if ((security_approach == 401  || security_approach == 402) && init_phase==0)  {            
                 mpi_errno = MPI_SEC_Irecv(buf, count, datatype, source, tag, comm,request);
     } else      mpi_errno = MPI_Irecv_original(buf, count, datatype, source, tag, comm,request);
 
+    if (TIMING_FLAG) stop_time_all_comm();    
     return mpi_errno;
    
 }

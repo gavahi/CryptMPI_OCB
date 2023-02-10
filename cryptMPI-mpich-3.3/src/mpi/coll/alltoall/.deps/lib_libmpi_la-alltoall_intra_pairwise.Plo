@@ -103,7 +103,7 @@ src/mpi/coll/alltoall/lib_libmpi_la-alltoall_intra_pairwise.lo: \
  /home/gavahi/boringssl-master/include/openssl/rand.h \
  /usr/include/sys/ipc.h /usr/include/bits/ipctypes.h \
  /usr/include/bits/ipc.h /usr/include/sys/shm.h /usr/include/bits/shm.h \
- src/include/mpir_misc.h src/include/mpir_dbg.h \
+ /usr/include/sys/time.h src/include/mpir_misc.h src/include/mpir_dbg.h \
  src/include/mpir_objects.h src/include/mpir_strerror.h \
  src/include/mpir_type_defs.h /usr/include/sys/bitypes.h \
  /usr/include/complex.h /usr/include/bits/mathdef.h \
@@ -487,6 +487,8 @@ src/include/mpio.h:
 /usr/include/sys/shm.h:
 
 /usr/include/bits/shm.h:
+
+/usr/include/sys/time.h:
 
 src/include/mpir_misc.h:
 

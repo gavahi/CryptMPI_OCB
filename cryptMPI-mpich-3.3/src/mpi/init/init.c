@@ -26,6 +26,7 @@ int node_cnt=1;
 int init_phase=1;
 int super_node=0;
 int PRINT_FUN_NAME=0;
+int PRINT_TIMING=0;
 int ALLGATHER_PRINT_FUN_NAME=0;
 int ENABLE_SECURE_DEBUG=0;
 int DEBUG_INIT_FILE=0;
@@ -66,15 +67,12 @@ int OCB_MAX_ITER=1024;
 ALIGN(16) char ocb_pt[8*1024] = {0};
 ALIGN(16) char ocb_tag[16];
 ALIGN(16) unsigned char ocb_key[] = "abcdefghijklmnop";
-// ALIGN(16) unsigned char ocb_nonce[] = "abcdefghijklmnop";
-// ALIGN(16) unsigned char ocb_nonce[16];
 ALIGN(16) unsigned char gcm_nonce[16];
-// ALIGN(16) unsigned char ocb_nonce2[16];
+
 // unsigned char *ocb_nonce;
 int ocb_len;
 int ocb_iter_list[2048]; /* Populate w/ test lengths, -1 terminated */
-// ae_ctx* ocb_ctx = ae_allocate(NULL);
-// ae_ctx* ocb_ctx = NULL;
+
 ae_ctx* ocb_enc_ctx = NULL;
 ae_ctx* ocb_enc_ctx2 = NULL;
 ae_ctx* ocb_enc_ctx3 = NULL;
@@ -83,16 +81,6 @@ ae_ctx* ocb_dec_ctx = NULL;
 ae_ctx* ocb_dec_ctx2 = NULL;
 ae_ctx* ocb_dec_ctx3 = NULL;
 ae_ctx* ocb_dec_ctx4 = NULL;
-
-
-// ALIGN(16) unsigned char ocb_ciphertext_sendbuf[ocb_buf_size*4*1024*1024+16+16];
-// ALIGN(16) unsigned char ocb_ciphertext_recvbuf[ocb_buf_size*4*1024*1024+16+16];
-
-// unsigned char ocb_ciphertext_sendbuf[1024*1024+16+16];
-// unsigned char ocb_ciphertext_recvbuf[1024*1024+16+16];
-
-
-// typedef struct _ae_ctx ae_ctx;
 	
 ae_ctx* ae_allocate  (void *misc);  /* Allocate ae_ctx, set optional ptr   */
 void    ae_free      (ae_ctx *ctx); /* Deallocate ae_ctx struct            */
@@ -104,10 +92,42 @@ int     ae_ctx_sizeof(void);        /* Return sizeof(ae_ctx)               */
  * and deallocates any auxiliary structures allocated during ae_init().
  * ae_ctx_sizeof() returns sizeof(ae_ctx), to aid in any static allocations.
  */
+/********** Timing Variables **************/
+struct timeval  omp_tv1, omp_tv2, omp_tv3, omp_tv4, omp_tv5, omp_tv6;
+double omp_t1 = 0 , omp_t2 = 0 , omp_t3 = 0;
 
+#if ENC_DEC_TIME_DEBUG || ALL_COMM_PLUS_ENC_TIME
+struct timeval prog_start_time, prog_end_time;
+double  prog_exec_time;
+#endif
 
+#if ALL_COMM_PLUS_ENC_TIME
+struct timeval comm_start_time, comm_end_time, wait_start_time, wait_end_time;
+double  total_comm_plus_enc_time = 0, total_wait_time = 0;
+double total_comm_plus_enc_time_long_msg = 0;
+double total_comm_plus_enc_time_small_msg = 0;
 
-/************************/
+double inter_less_than_128K =0;
+double inter_128K_256K = 0;
+double inter_256K_512K = 0;
+double inter_512K_1M = 0;
+double inter_more_than_1M = 0;
+
+ double intra_less_than_128K = 0;
+ double intra_128K_256K = 0;
+ double intra_256K_512K = 0;
+ double intra_512K_1M = 0;
+ double intra_more_than_1M = 0;
+#endif
+int long_msg_flag = 0;
+
+#if COND_LOCK
+int cond_variable[MY_MAX_NO_THREADS+10];
+pthread_mutex_t myp_lock = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t myp_cond = PTHREAD_COND_INITIALIZER;
+#endif
+
+/*******************************/
 
 // End of Add 
 
@@ -159,7 +179,7 @@ unsigned long enc_common_counter_long_msg = 0;
 unsigned long base_global_counter;
 unsigned char  zeros[MAX_COMMON_COUNTER_SZ];
 int common_compute_size =0;
-int long_msg_flag = 0;
+
 
 /* End of add */
 
@@ -274,6 +294,7 @@ The Fortran binding for 'MPI_Init' has only the error return
 @*/
 int MPI_Init(int *argc, char ***argv)
 {
+    if (TIMING_FLAG) start_time_all_prog();
     int mpi_errno = MPI_SUCCESS;
     int rc ATTRIBUTE((unused));
     int threadLevel, provided;
@@ -287,6 +308,9 @@ int MPI_Init(int *argc, char ***argv)
 		
 	m_tc = getenv("MV2_DEBUG_INIT_FILE");
 	if (m_tc && (strncmp(m_tc, "1",1) == 0))	DEBUG_INIT_FILE = 1;
+
+    m_tc = getenv("MV2_PRINT_TIMING");
+	if (m_tc && (strncmp(m_tc, "1",1) == 0))	PRINT_TIMING = 1;    
 
     /* *********** End *********** */
 

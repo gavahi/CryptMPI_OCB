@@ -200,6 +200,8 @@ int MPIR_Sec_GCM_Isend(const void *buf, int count, MPI_Datatype datatype, int de
     Iciphertext[nonBlockCounter][2] = (tempdata >> 8) & 0xFF;
     Iciphertext[nonBlockCounter][3] = tempdata & 0xFF;*/
 
+    if (TIMING_FLAG) start_time_header_comm();  
+
     Integer_to_Array(&Iciphertext[nonBlockCounter], totaldata);
 
     int request_counter = 0;
@@ -212,8 +214,13 @@ int MPIR_Sec_GCM_Isend(const void *buf, int count, MPI_Datatype datatype, int de
 #endif    
     mpi_errno = MPI_Isend_original(&Iciphertext[nonBlockCounter][0], MSG_HEADER_SIZE, MPI_CHAR, dest, tag, comm,
     &nonblock_req_handler[nonBlockCounter].request[request_counter++]);
+
+    if (TIMING_FLAG) stop_time_header_comm();  
+
     max_out_len = totaldata+16; 
     pos = MSG_HEADER_SIZE;
+
+    if (TIMING_FLAG) start_time_enc();
 
     RAND_bytes(&Iciphertext[nonBlockCounter][pos], 12);        
     int enc_data = totaldata;
@@ -226,6 +233,8 @@ int MPIR_Sec_GCM_Isend(const void *buf, int count, MPI_Datatype datatype, int de
             printf("[T = %d] openmp-isend err in encryption: segment_counter=%d\n",omp_get_thread_num(),0);
             //fflush(stdout);
         }
+
+    if (TIMING_FLAG) stop_time_enc();
 
 
     mpi_errno = MPI_Isend_original(&Iciphertext[nonBlockCounter][MSG_HEADER_SIZE], totaldata+((12+16)), MPI_CHAR, dest, tag, comm,
@@ -274,15 +283,22 @@ int MPIR_Sec_OCB_Isend(const void *buf, int count, MPI_Datatype datatype, int de
     Iciphertext[nonBlockCounter][2] = (tempdata >> 8) & 0xFF;
     Iciphertext[nonBlockCounter][3] = tempdata & 0xFF;
 */    
+    if (TIMING_FLAG) start_time_header_comm();  
     Integer_to_Array(&Iciphertext[nonBlockCounter], totaldata);
     int request_counter = 0;
 
     mpi_errno = MPI_Isend_original(&Iciphertext[nonBlockCounter][0], MSG_HEADER_SIZE, MPI_CHAR, dest, tag, comm,
     &nonblock_req_handler[nonBlockCounter].request[request_counter++]);
 
+    if (TIMING_FLAG) stop_time_header_comm();  
+
     pos = MSG_HEADER_SIZE;
 
+    if (TIMING_FLAG) start_time_enc();
+
     ocb_encrypt(ocb_enc_ctx, ocb_enc_ctx2, ocb_enc_ctx3, ocb_enc_ctx4, buf, totaldata, &Iciphertext[nonBlockCounter][pos], 1);
+
+    if (TIMING_FLAG) stop_time_enc;
 
     mpi_errno = MPI_Isend_original(&Iciphertext[nonBlockCounter][MSG_HEADER_SIZE], totaldata+OCB_TAG_NONCE, MPI_CHAR, dest, tag, comm,
     &nonblock_req_handler[nonBlockCounter].request[request_counter++]);
@@ -314,7 +330,8 @@ int MPI_Isend(const void *buf, int count, MPI_Datatype datatype, int dest, int t
 		gethostname(hostname, MAX_HOSTNAME_LEN);
 		printf("[Send rank = %d host = %s count = %d SA=%d] Func: MPI_Isend\n", init_rank,hostname,count,security_approach);fflush(stdout);
 	}
-#endif     
+#endif 
+    if (TIMING_FLAG) start_time_all_comm();       
     int mpi_errno = MPI_SUCCESS;
 
     if (security_approach == 401 && init_phase==0)  {            
@@ -323,6 +340,7 @@ int MPI_Isend(const void *buf, int count, MPI_Datatype datatype, int dest, int t
                 mpi_errno = MPIR_Sec_OCB_Isend(buf, count, datatype, dest, tag, comm,request);
     } else      mpi_errno = MPI_Isend_original(buf, count, datatype, dest, tag, comm,request);
 
+    if (TIMING_FLAG) stop_time_all_comm();
     return mpi_errno;
    
 }

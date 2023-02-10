@@ -164,9 +164,10 @@ extern int ocb_iter_list[2048]; /* Populate w/ test lengths, -1 terminated */
 // extern unsigned char ocb_ciphertext_recvbuf[1024*1024+16+16]; // 128 * 128 * 1024
 
 /******************************/
-
+#define TIMING_FLAG 1 // Mohsen
 extern int node_cnt;
 extern int PRINT_FUN_NAME;
+extern int PRINT_TIMING;
 extern int ALLGATHER_PRINT_FUN_NAME;
 extern int ENABLE_SECURE_DEBUG;
 extern int CONCUR_INTER_METHOD;
@@ -262,7 +263,7 @@ extern int inter_allreduce_tuning;
 //#define SIZE_REQ_HANDLE_CHOPPING 5000
 
 /* Define header sizes */
-#define MSG_HEADER_SIZE 25 
+#define MSG_HEADER_SIZE 4 
 #define ENC_MSG_TAG_SIZE 16
 #define NONCE_HEADER 5
 #define NONCE_SIZE 12
@@ -343,7 +344,35 @@ extern struct isend_req nonblock_req_handler[ISEND_REQ+5];
 #define ONLY_ONE_THREAD_PIPELINE 0
 #define OMP_DYNAMIC_THREADS 0
 #define OMP_DYNAMIC_THREADS_INNOVATION 0
-#define ALL_COMM_PLUS_ENC_TIME 0
+#define ENC_DEC_TIME_DEBUG 1 
+#define ALL_COMM_PLUS_ENC_TIME 1
+#if ALL_COMM_PLUS_ENC_TIME
+extern struct timeval comm_start_time, comm_end_time, wait_start_time, wait_end_time;
+extern double  total_comm_plus_enc_time, total_wait_time;
+extern double total_comm_plus_enc_time_long_msg;
+extern double total_comm_plus_enc_time_small_msg;
+
+extern double inter_less_than_128K;
+extern double inter_128K_256K;
+extern double inter_256K_512K;
+extern double inter_512K_1M;
+extern double inter_more_than_1M;
+
+extern double intra_less_than_128K;
+extern double intra_128K_256K;
+extern double intra_256K_512K;
+extern double intra_512K_1M;
+extern double intra_more_than_1M;
+#endif
+extern int long_msg_flag ;
+#if 1 //ENC_DEC_TIME_DEBUG
+#include <sys/time.h>
+extern struct timeval  omp_tv1, omp_tv2, omp_tv3, omp_tv4, omp_tv5, omp_tv6, prog_start_time, prog_end_time;
+extern double omp_t1,omp_t2, omp_t3, prog_exec_time;
+#endif
+#define COMM_TIME_DEBUG 0
+
+
 
 #define MAX_PENDING_ISEND_LIMIT 64 
 #define MAX_PROCESS_SIZE 2000 
@@ -369,7 +398,6 @@ struct CryptHandleProbe{
 };
 
 extern struct CryptHandleProbe Crypthandle_probe[2048]; 
-extern int long_msg_flag ;
 
 /*keys */
 extern EVP_AEAD_CTX * global_openmp_ctx;
@@ -436,6 +464,14 @@ extern void multithreads_encryption_common_counter_large_msg(const void *buf, in
 //extern int init_shmem();
 extern int Array_to_Integer(unsigned char  array[]);
 extern void Integer_to_Array(unsigned char array[] , int totaldata);
+extern void start_time_enc();
+extern void stop_time_enc();
+extern void start_time_dec();
+extern void stop_time_dec();
+extern void start_time_header_comm();
+extern void stop_time_header_comm();
+extern void start_time_all_prog();
+extern void stop_time_all_prog();
 
 /****************************** Added by Mehran *****************************/
 
