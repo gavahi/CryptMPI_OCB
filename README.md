@@ -441,9 +441,10 @@ printenv | grep MV2 | perl -ne 'print "export $_"'
 ```
 
 
-Display Functions name and debuging points:
+Display Functions name and debuging and timing points:
 
 ```bash
 export MV2_PRINT_FUN_NAME=1
 export MV2_DEBUG_INIT_FILE=1
+export MV2_PRINT_TIMING=1
 ```
