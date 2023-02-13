@@ -133,8 +133,8 @@ In my evaluation process, I used many MPI application and benchmarks such as:
 Some useful scripts regarding container cluster development is located on [Container.gz.tar](https://github.com/gavahi/CryptMPI_OCB/blob/main/Container.gz.tar) to reproduce results. 
 It is recommanded to use thses scripts, you need a basic knowledge about Docker and Kubernetes.
 
-To setup and managing Multi-Host Orchestration with Docker Swarm Mode I exploit this [repo](https://github.com/NLKNguyen/alpine-mpich/wiki/Multi-Host-Orchestration).
-To intilize the Kubernetes cluster I use this [link](https://www.tecmint.com/install-kubernetes-cluster-on-centos-7/) and for setting up a Kubernetes cluster based on Singularity I found this [page](https://slateci.io/blog/kubernetes-with-singularity.html) very useful.
+All docker images are accessable in [DockerHub](https://hub.docker.com/r/gavahi/cryptmpich/tags). To setup and managing Multi-Host Orchestration with Docker Swarm Mode I exploit this [repo](https://github.com/NLKNguyen/alpine-mpich/wiki/Multi-Host-Orchestration).
+To intilize the Kubernetes cluster I use this [link](https://www.tecmint.com/install-kubernetes-cluster-on-centos-7/) and for setting up a Kubernetes cluster based on Singularity I found this [page](https://slateci.io/blog/kubernetes-with-singularity.html) very useful. 
 
 ## Flags List
 
